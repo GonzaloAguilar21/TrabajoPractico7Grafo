@@ -1,0 +1,125 @@
+import heapq
+from collections import defaultdict
+class GrafoMaravillas:
+    def __init__(self):
+        self.grafo = defaultdict(list)
+        self.info_maravillas = {}
+    def agregar_maravilla(self, nombre, paises, tipo):
+        # Agregar información de cada maravilla
+        self.info_maravillas[nombre] = {
+            'paises': paises,
+            'tipo': tipo
+        }
+        if nombre not in self.grafo:
+            self.grafo[nombre] = []
+    def agregar_arista(self, maravilla1, maravilla2, distancia):
+        # Crear una arista entre dos maravillas con su distancia
+        self.grafo[maravilla1].append((maravilla2, distancia))
+        self.grafo[maravilla2].append((maravilla1, distancia))
+    def obtener_vertices(self):
+        return list(self.grafo.keys())
+    def obtener_adyacentes(self, maravilla):
+        return self.grafo.get(maravilla, [])
+    def prim_mst(self, tipo):
+        # Algoritmo de Prim para el Árbol de Expansión Mínima (MST) por tipo
+        inicio = next((m for m, info in self.info_maravillas.items() if info['tipo'] == tipo), None)
+        if inicio is None:
+            return [], 0
+        visitados = set([inicio])
+        aristas = [(peso, inicio, destino) for destino, peso in self.grafo[inicio] if self.info_maravillas[destino]['tipo'] == tipo]
+        heapq.heapify(aristas)
+        mst = []
+        total_costo = 0
+        while aristas and len(visitados) < len([m for m in self.info_maravillas if self.info_maravillas[m]['tipo'] == tipo]):
+            peso, origen, destino = heapq.heappop(aristas)
+            if destino not in visitados:
+                visitados.add(destino)
+                mst.append((origen, destino, peso))
+                total_costo += peso
+                for siguiente, p in self.grafo[destino]:
+                    if siguiente not in visitados and self.info_maravillas[siguiente]['tipo'] == tipo:
+                        heapq.heappush(aristas, (p, destino, siguiente))
+        return mst, total_costo
+    def pais_con_maravillas_de_ambos_tipos(self):
+        # Determinar si existen países con maravillas de ambos tipos
+        paises_tipo = defaultdict(set)
+        for nombre, info in self.info_maravillas.items():
+            for pais in info['paises']:
+                paises_tipo[pais].add(info['tipo'])
+        return [pais for pais, tipos in paises_tipo.items() if len(tipos) > 1]
+    def pais_con_multiples_maravillas_mismo_tipo(self):
+        # Determinar si algún país tiene más de una maravilla del mismo tipo
+        paises_maravillas = defaultdict(lambda: defaultdict(int))
+        for nombre, info in self.info_maravillas.items():
+            for pais in info['paises']:
+                paises_maravillas[pais][info['tipo']] += 1
+        return {pais: tipos for pais, tipos in paises_maravillas.items() if any(cantidad > 1 for cantidad in tipos.values())}
+##
+##
+##
+grafo = GrafoMaravillas()
+maravillas = [
+    ("Gran Muralla China", ["China"], "arquitectónica"),
+    ("Petra", ["Jordania"], "arquitectónica"),
+    ("Cristo Redentor", ["Brasil"], "arquitectónica"),
+    ("Machu Picchu", ["Perú"], "arquitectónica"),
+    ("Chichén Itzá", ["México"], "arquitectónica"),
+    ("Coliseo de Roma", ["Italia"], "arquitectónica"),
+    ("Taj Mahal", ["India"], "arquitectónica"),
+    ("Amazonas", ["Brasil", "Perú", "Colombia", "Venezuela"], "natural"),
+    ("Bahía de Ha-Long", ["Vietnam"], "natural"),
+    ("Cataratas del Iguazú", ["Argentina", "Brasil"], "natural"),
+    ("Isla Jeju", ["Corea del Sur"], "natural"),
+    ("Parque Nacional de Komodo", ["Indonesia"], "natural"),
+    ("Río Subterráneo de Puerto Princesa", ["Filipinas"], "natural"),
+    ("Montaña de la Mesa", ["Sudáfrica"], "natural")
+]
+
+for nombre, paises, tipo in maravillas:
+    grafo.agregar_maravilla(nombre, paises, tipo)
+
+distancias_arquitectonicas = [
+    ("Gran Muralla China", "Petra", 4000),
+    ("Gran Muralla China", "Cristo Redentor", 17000),
+    ("Gran Muralla China", "Machu Picchu", 18000),
+    ("Petra", "Cristo Redentor", 12000),
+    ("Petra", "Machu Picchu", 13000),
+    ("Cristo Redentor", "Machu Picchu", 4000),
+    ("Cristo Redentor", "Chichén Itzá", 6500),
+    ("Machu Picchu", "Chichén Itzá", 4000),
+    ("Chichén Itzá", "Coliseo de Roma", 9500),
+    ("Coliseo de Roma", "Taj Mahal", 6700),
+    ("Taj Mahal", "Gran Muralla China", 3800)
+]
+
+distancias_naturales = [
+    ("Amazonas", "Bahía de Ha-Long", 17500),
+    ("Amazonas", "Cataratas del Iguazú", 3500),
+    ("Amazonas", "Isla Jeju", 19000),
+    ("Bahía de Ha-Long", "Cataratas del Iguazú", 17000),
+    ("Bahía de Ha-Long", "Isla Jeju", 3000),
+    ("Cataratas del Iguazú", "Parque Nacional de Komodo", 18000),
+    ("Parque Nacional de Komodo", "Río Subterráneo de Puerto Princesa", 2500),
+    ("Río Subterráneo de Puerto Princesa", "Montaña de la Mesa", 16000),
+    ("Montaña de la Mesa", "Isla Jeju", 21000)
+]
+
+for maravilla1, maravilla2, distancia in distancias_arquitectonicas:
+    grafo.agregar_arista(maravilla1, maravilla2, distancia)
+
+for maravilla1, maravilla2, distancia in distancias_naturales:
+    grafo.agregar_arista(maravilla1, maravilla2, distancia)
+
+##
+##
+##
+mst_arquitectonicas, costo_arquitectonicas = grafo.prim_mst("arquitectónica")
+mst_naturales, costo_naturales = grafo.prim_mst("natural")
+print("MST Arquitectónicas:", mst_arquitectonicas)
+print("Costo total arquitectónicas:", costo_arquitectonicas)
+print("MST Naturales:", mst_naturales)
+print("Costo total naturales:", costo_naturales)
+paises_ambos_tipos = grafo.pais_con_maravillas_de_ambos_tipos()
+print("Países con maravillas de ambos tipos:", paises_ambos_tipos)
+paises_multiples_mismo_tipo = grafo.pais_con_multiples_maravillas_mismo_tipo()
+print("Países con múltiples maravillas del mismo tipo:", paises_multiples_mismo_tipo)
